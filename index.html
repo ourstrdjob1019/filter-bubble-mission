@@ -181,8 +181,8 @@
         /* Scene 7: 역할 선택 스타일 */
         .dystopia-title {
             font-family: 'Black Han Sans';
-            font-size: 4.2rem;
-            margin-bottom: 40px;
+            font-size: clamp(2rem, 5vw, 4.2rem);
+            margin-bottom: clamp(20px, 4vh, 40px);
             color: #fff;
             text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
             text-align: center;
@@ -196,8 +196,8 @@
         }
 
         .card {
-            width: 380px;
-            height: 580px;
+            width: clamp(280px, 20vw, 380px);
+            height: clamp(420px, 30vw, 580px);
             perspective: 1000px;
             cursor: pointer;
         }
@@ -251,13 +251,13 @@
 
         .card-back h3 {
             font-family: 'Black Han Sans';
-            font-size: 3rem;
-            margin-bottom: 30px;
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            margin-bottom: clamp(15px, 3vh, 30px);
             color: var(--accent-color);
         }
 
         .card-back p {
-            font-size: 1.6rem; /* 폰트 크기 살짝 조정 */
+            font-size: clamp(1rem, 2vw, 1.6rem); /* 폰트 크기 살짝 조정 */
             font-weight: bold;
             line-height: 1.6;
             word-break: keep-all; /* 단어 단위 줄바꿈 */
@@ -300,9 +300,9 @@
 
         .column-header {
             font-family: 'Black Han Sans';
-            font-size: 3rem;
+            font-size: clamp(1.8rem, 4vw, 3rem);
             color: #fff;
-            margin-bottom: 30px;
+            margin-bottom: clamp(15px, 3vh, 30px);
             border-bottom: 4px solid var(--accent-color);
         }
 
@@ -317,13 +317,13 @@
         .timeline-block {
             background: #222;
             border: 2px solid #555;
-            padding: 20px;
-            width: 80%;
+            padding: clamp(10px, 2vh, 20px);
+            width: 90%;
             text-align: center;
             border-radius: 8px;
-            font-size: 1.85rem;
+            font-size: clamp(1.1rem, 2.5vw, 1.85rem);
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: clamp(10px, 2vh, 20px);
         }
 
         .rules-grid {
@@ -334,8 +334,8 @@
         }
 
         .rule-circle {
-            width: 175px;
-            height: 175px;
+            width: clamp(100px, 12vw, 175px);
+            height: clamp(100px, 12vw, 175px);
             border-radius: 50%;
             background: #111;
             border: 4px solid var(--accent-color);
@@ -343,9 +343,9 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            margin: 10px;
+            margin: 5px;
             font-family: 'Black Han Sans';
-            font-size: 1.7rem;
+            font-size: clamp(0.9rem, 1.8vw, 1.7rem);
         }
 
         .break {
@@ -363,10 +363,10 @@
 
         .timer-badge {
             font-family: 'Black Han Sans';
-            font-size: 4.5rem;
+            font-size: clamp(2rem, 6vw, 4.5rem);
             color: var(--accent-color);
             background: rgba(0, 0, 0, 0.8);
-            padding: 15px 40px;
+            padding: clamp(10px, 2vh, 15px) clamp(20px, 3vw, 40px);
             border: 1px solid var(--accent-color);
             border-radius: 15px;
         }
@@ -374,21 +374,21 @@
         .phase-title {
             font-family: 'Noto Sans KR';
             font-weight: 700;
-            font-size: 5rem;
+            font-size: clamp(2.5rem, 6vw, 5rem);
             color: #fff;
-            margin-bottom: 30px;
+            margin-bottom: clamp(15px, 4vh, 30px);
             text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.8);
             text-align: center;
         }
 
         .phase-content {
-            font-size: 2.6rem;
+            font-size: clamp(1.4rem, 3.5vw, 2.6rem);
             font-weight: bold;
             background: rgba(10, 10, 10, 0.9);
-            padding: 40px 60px;
+            padding: clamp(20px, 4vh, 40px) clamp(30px, 5vw, 60px);
             border-radius: 20px;
             border: 2px solid #777;
-            min-height: 400px;
+            min-height: clamp(300px, 50vh, 400px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -468,8 +468,9 @@
         }
 
         .example-box img {
-            width: 180px;
-            height: 270px;
+            width: clamp(120px, 15vw, 180px);
+            height: auto;
+            aspect-ratio: 2/3;
             object-fit: cover;
             border: 2px solid #fff;
             transition: transform 0.3s;
@@ -514,8 +515,8 @@
         }
 
         .debrief-text {
-            font-size: 2.4rem;
-            line-height: 2;
+            font-size: clamp(1.2rem, 2.5vw, 2.4rem);
+            line-height: 1.8;
             color: #ccc;
             margin-top: 40px;
             text-align: left;
