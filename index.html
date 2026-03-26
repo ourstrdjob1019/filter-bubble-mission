@@ -1,138 +1,631 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>킹메이커: 더 필터 버블 (Part 2)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;700&display=swap"
+        rel="stylesheet">
     <style>
-        :root { --bg-color: #050505; --text-color: #f0f0f0; --accent-color: #e74c3c; --gold-color: #ffd700; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background-color: var(--bg-color); color: var(--text-color); font-family: 'Noto Sans KR', sans-serif;
-            overflow: hidden; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center;
-            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+        :root {
+            --bg-color: #050505;
+            --text-color: #f0f0f0;
+            --accent-color: #e74c3c;
+            --gold-color: #ffd700;
         }
 
-        /* --- [PC 기본 환경] --- */
-        #main-wrapper { position: relative; width: 177.78vh; max-width: 100vw; height: 56.25vw; max-height: 100vh; aspect-ratio: 16/9; overflow: hidden; background: #000; }
-        img, video { -webkit-user-drag: none; -khtml-user-drag: none; -moz-user-drag: none; -o-user-drag: none; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
-        .start-msg { font-family: 'Black Han Sans'; font-size: 6vmin; color: #fff; animation: pulse 1.5s infinite; }
-        
-        .nav-ui { position: absolute; z-index: 2000; cursor: pointer; font-family: 'Black Han Sans'; font-size: 2.5vmin; color: #888; transition: 0.3s; background: rgba(0,0,0,0.5); padding: 1vmin 2vmin; border-radius: 1vmin; white-space: nowrap; }
-        .nav-ui:hover { color: #fff; background: var(--accent-color); }
-        #btn-menu { top: 3vmin; left: 3vmin; } #btn-prev { bottom: 3vmin; left: 3vmin; } #btn-next { bottom: 3vmin; right: 3vmin; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
 
-        .drawer { position: absolute; top: 0; left: -50vmin; width: 45vmin; height: 100%; background: rgba(0,0,0,0.95); border-right: 0.4vmin solid var(--accent-color); transition: left 0.3s ease; z-index: 3000; padding: 5vmin; }
-        .drawer.open { left: 0; }
-        .drawer h2 { font-size: 3vmin; margin-bottom: 3vmin; color: var(--accent-color); }
-        .drawer li { margin-bottom: 2.5vmin; cursor: pointer; list-style: none; font-size: 2.2vmin; font-weight: bold; }
-        .drawer li:hover { color: var(--accent-color); }
+        #main-wrapper {
+            position: relative;
+            width: 177.78vh; /* 16:9 비율 유지 (선택 사항, 필요시) */
+            max-width: 100vw;
+            height: 56.25vw; /* 16:9 비율 유지 (선택 사항, 필요시) */
+            max-height: 100vh;
+            aspect-ratio: 16 / 9; /* 최신 브라우저 대응 */
+            overflow: hidden;
+            background: #000;
+        }
 
-        .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.8s ease; background: #000; }
-        .scene.active { opacity: 1; pointer-events: all; }
+        /* 꽉 찬 비율을 선호하는 경우 아래 설정 사용 */
+        #main-wrapper {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: unset;
+        }
 
-        .btn-main { padding: 2vmin 6vmin; font-size: 4.5vmin; background: var(--accent-color); color: #fff; border: none; cursor: pointer; font-family: 'Black Han Sans'; box-shadow: 0 0 4vmin var(--accent-color); animation: pulse 2s infinite; }
+        img,
+        video {
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+        }
 
-        /* Scene 7 */
-        .dystopia-title { font-family: 'Black Han Sans'; font-size: 8vmin; margin-bottom: 5vmin; color: #fff; text-shadow: 0 0 2vmin #ff0000, 0 0 4vmin #ff0000; text-align: center; }
-        .card-container { display: flex; gap: 4vmin; flex-wrap: wrap; justify-content: center; }
-        .card { width: 25vmin; height: 38vmin; perspective: 100vmin; cursor: pointer; }
-        .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
-        .card.flipped .card-inner { transform: rotateY(180deg); }
-        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 1.5vmin; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 1.5vmin 3.5vmin rgba(0,0,0,0.8); }
-        .card-front { background: #111; border: 0.3vmin solid #333; }
-        .card-front img { width: 100%; height: 100%; object-fit: cover; border-radius: 1.2vmin; }
-        .card-back { background: #222; color: #fff; transform: rotateY(180deg); padding: 3vmin; border: 0.4vmin solid var(--accent-color); }
-        .card-back h3 { font-family: 'Black Han Sans'; font-size: 4vmin; margin-bottom: 3vmin; color: var(--accent-color); }
-        .card-back p { font-size: 2.2vmin; font-weight: bold; line-height: 1.6; word-break: keep-all; text-align: center; white-space: nowrap; }
+        /* --- UI & Navigation --- */
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
 
-        /* Scene 8 */
-        .candidate-img { width: auto; height: 80vh; max-width: 90%; object-fit: contain; }
-        .btn-select-complete { position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%); padding: 2vmin 6vmin; font-size: 3.5vmin; background: var(--accent-color); color: #fff; border: none; cursor: pointer; font-family: 'Black Han Sans'; animation: pulse 2s infinite; white-space: nowrap; }
+        .start-msg {
+            font-family: 'Black Han Sans';
+            font-size: 6vmin;
+            color: #fff;
+            animation: pulse 1.5s infinite;
+        }
 
-        /* Scene 9 */
-        .scene9-layout { display: flex; width: 97%; height: 80vh; gap: 5vmin; justify-content: center; align-items: center; }
-        .column-header { font-family: 'Black Han Sans'; font-size: 4.5vmin; color: #fff; margin-bottom: 3vmin; border-bottom: 0.4vmin solid var(--accent-color); }
-        .timeline-col, .rules-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
-        .timeline-block { background: #222; border: 0.2vmin solid #555; padding: 2vmin; width: 90%; text-align: center; border-radius: 1vmin; font-size: 2.5vmin; font-weight: bold; margin-bottom: 2vmin; }
-        .rules-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 2vmin; }
-        .rule-circle { width: 20vmin; height: 20vmin; border-radius: 50%; background: #111; border: 0.4vmin solid var(--accent-color); display: flex; justify-content: center; align-items: center; text-align: center; margin: 0.5vmin; font-family: 'Black Han Sans'; font-size: 2.2vmin; }
-        .break { flex-basis: 100%; height: 0; }
+        .nav-ui {
+            position: absolute;
+            z-index: 2000;
+            cursor: pointer;
+            font-family: 'Black Han Sans';
+            font-size: 2.5vmin;
+            color: #888;
+            transition: 0.3s;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1vmin 2vmin;
+            border-radius: 1vmin;
+            white-space: nowrap;
+        }
 
-        /* Scene 11 */
-        .mission-header { display: flex; justify-content: center; align-items: center; margin-bottom: 2vmin; }
-        .timer-badge { font-family: 'Black Han Sans'; font-size: 5.5vmin; color: var(--accent-color); background: rgba(0,0,0,0.8); padding: 1.5vmin 4vmin; border: 0.2vmin solid var(--accent-color); border-radius: 2vmin; }
-        .phase-title { font-family: 'Noto Sans KR'; font-weight: 700; font-size: 6vmin; color: #fff; margin-bottom: 4vmin; text-shadow: 0.2vmin 0.4vmin 0.8vmin rgba(0,0,0,0.8); text-align: center; }
-        .phase-content { font-size: 2.8vmin; font-weight: bold; background: rgba(10,10,10,0.9); padding: 4vmin 6vmin; border-radius: 2.5vmin; border: 0.3vmin solid #777; min-height: 45vmin; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; width: 95%; margin: 0 auto; position: relative; }
-        .phase-text-wrapper { display: flex; flex-direction: column; align-items: flex-start; flex: 1; width: 100%; }
-        .phase-content p { margin-bottom: 2.5vmin; width: 100%; text-align: left; line-height: 1.6; display: flex; align-items: flex-start; word-break: keep-all; white-space: normal; }
-        .phase-content p::before { content: "▶ "; color: var(--accent-color); margin-right: 1.5vmin; flex-shrink: 0; }
-        .vote-layout { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4vmin; }
-        .vote-img-col { display: flex; gap: 2vmin; justify-content: center; align-items: center; flex-shrink: 0; }
-        .vote-img-col img { width: 100%; max-width: 30vmin; object-fit: contain; border: 0.3vmin solid #fff; transition: transform 0.3s; cursor: pointer; position: relative; }
-        .vote-img-col img:hover { transform: scale(1.6); z-index: 999; border-color: var(--gold-color); }
-        .example-box { display: flex; gap: 2vmin; margin-top: 2vmin; justify-content: flex-start; width: 100%; }
-        .example-box img { width: 15vmin; height: auto; aspect-ratio: 2/3; object-fit: cover; border: 0.2vmin solid #fff; transition: transform 0.3s; cursor: pointer; position: relative; }
-        .example-box img:hover { transform: scale(2.0); z-index: 999; border-color: var(--gold-color); }
-        .phase-controls { position: absolute; bottom: 3.5vmin; display: flex; gap: 2vmin; justify-content: center; width: 100%; }
-        .phase-btn { background: #333; color: #fff; border: 0.2vmin solid #555; padding: 1.5vmin 3vmin; font-size: 2vmin; cursor: pointer; font-family: 'Black Han Sans'; border-radius: 1vmin; transition: 0.3s; white-space: nowrap; }
-        .phase-btn:hover { background: var(--accent-color); border-color: #fff; }
+        .nav-ui:hover {
+            color: #fff;
+            background: var(--accent-color);
+        }
 
-        /* Scene 12 */
-        .debrief-box { text-align: center; border: 0.3vmin solid var(--accent-color); padding: 6vmin; background: rgba(0,0,0,0.9); width: 96%; display: flex; flex-direction: column; align-items: center; }
-        .debrief-text { font-size: 2.5vmin; line-height: 1.8; color: #ccc; margin-top: 4vmin; text-align: left; max-width: 150vmin; }
+        #btn-menu {
+            top: 3vmin;
+            left: 3vmin;
+        }
 
-        /* Scene 13: CSS 클래스화 적용 */
-        .s13-wrap { width: 96vmin; }
-        .s13-header { display: flex; align-items: baseline; gap: 2.4vmin; margin-bottom: 4vmin; border-bottom: 0.3vmin solid #111; padding-bottom: 2vmin; }
-        .s13-badge { font-size: 1.5vmin; font-weight: 700; color: #e74c3c; letter-spacing: 0.2em; flex-shrink: 0; }
-        .s13-title { font-size: 3.5vmin; font-weight: 900; color: #111; margin: 0; font-family: 'Noto Sans KR'; }
-        .s13-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2.2vmin; margin-bottom: 2.8vmin; }
-        .s13-card { background: #f7f7f7; border-radius: 1.6vmin; padding: 3.6vmin 4.2vmin; display: flex; gap: 2.8vmin; align-items: flex-start; }
-        .s13-num { font-size: 4vmin; font-weight: 900; color: #e74c3c; opacity: 0.55; line-height: 1; flex-shrink: 0; min-width: 7vmin; }
-        .s13-c-title { font-size: 1.9vmin; font-weight: 900; color: #111; margin-bottom: 1.2vmin; }
-        .s13-c-desc { font-size: 1.4vmin; line-height: 1.9; color: #555; }
-        .s13-footer { background: #111; border-radius: 1.4vmin; padding: 2.8vmin 5.2vmin; text-align: center; }
-        .s13-f-text { font-size: 1.7vmin; font-weight: 700; color: #fff; line-height: 1.8; }
+        #btn-prev {
+            bottom: 3vmin;
+            left: 3vmin;
+        }
 
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        #btn-next {
+            bottom: 3vmin;
+            right: 3vmin;
+        }
 
-        /* --- [모바일 전용 환경: 가로폭 1024px 이하 스케일링] --- */
-        @media (max-width: 1024px) {
-            #main-wrapper { position: absolute; top: 50%; left: 50%; width: 1920px !important; height: 1080px !important; max-width: none !important; max-height: none !important; margin-top: -540px; margin-left: -960px; transform-origin: center center; }
-            .start-msg { font-size: 65px; }
-            .nav-ui { font-size: 27px; padding: 11px 22px; border-radius: 11px; }
-            #btn-menu { top: 32px; left: 32px; } #btn-prev { bottom: 32px; left: 32px; } #btn-next { bottom: 32px; right: 32px; }
-            .drawer { left: -540px; width: 486px; border-right-width: 4px; padding: 54px; }
-            .drawer h2 { font-size: 32px; margin-bottom: 32px; }
-            .drawer li { margin-bottom: 27px; font-size: 24px; }
-            .btn-main { padding: 22px 65px; font-size: 49px; box-shadow: 0 0 43px var(--accent-color); }
-            .dystopia-title { font-size: 86px; margin-bottom: 54px; text-shadow: 0 0 22px #ff0000, 0 0 43px #ff0000; }
-            .card-container { gap: 43px; } .card { width: 270px; height: 410px; perspective: 1080px; }
-            .card-front, .card-back { border-radius: 16px; box-shadow: 0 16px 38px rgba(0,0,0,0.8); }
-            .card-front { border-width: 3px; } .card-front img { border-radius: 13px; }
-            .card-back { padding: 32px; border-width: 4px; } .card-back h3 { font-size: 43px; margin-bottom: 32px; } .card-back p { font-size: 24px; }
-            .btn-select-complete { padding: 22px 65px; font-size: 38px; }
-            .scene9-layout { gap: 54px; } .column-header { font-size: 49px; margin-bottom: 32px; border-bottom-width: 4px; }
-            .timeline-block { border-width: 2px; padding: 22px; border-radius: 11px; font-size: 27px; margin-bottom: 22px; }
-            .rules-grid { gap: 22px; } .rule-circle { width: 216px; height: 216px; border-width: 4px; margin: 5px; font-size: 24px; }
-            .mission-header { margin-bottom: 22px; } .timer-badge { font-size: 59px; padding: 16px 43px; border-width: 2px; border-radius: 22px; }
-            .phase-title { font-size: 65px; margin-bottom: 43px; text-shadow: 2px 4px 9px rgba(0,0,0,0.8); }
-            .phase-content { font-size: 30px; padding: 43px 65px; border-radius: 27px; border-width: 3px; min-height: 486px; }
-            .phase-content p { margin-bottom: 27px; } .phase-content p::before { margin-right: 16px; }
-            .vote-layout { gap: 43px; } .vote-img-col { gap: 22px; } .vote-img-col img { max-width: 324px; border-width: 3px; }
-            .example-box { gap: 22px; margin-top: 22px; } .example-box img { width: 162px; border-width: 2px; }
-            .phase-controls { bottom: 38px; gap: 22px; } .phase-btn { border-width: 2px; padding: 16px 32px; font-size: 22px; border-radius: 11px; }
-            .debrief-box { border-width: 3px; padding: 65px; } .debrief-text { font-size: 27px; margin-top: 43px; max-width: 1620px; }
-            /* Scene 13 Overrides */
-            .s13-wrap { width: 1036px; } .s13-header { gap: 26px; margin-bottom: 43px; border-bottom-width: 3px; padding-bottom: 22px; }
-            .s13-badge { font-size: 16px; } .s13-title { font-size: 38px; }
-            .s13-grid { gap: 24px; margin-bottom: 30px; } .s13-card { border-radius: 17px; padding: 39px 45px; gap: 30px; }
-            .s13-num { font-size: 43px; min-width: 76px; } .s13-c-title { font-size: 21px; margin-bottom: 13px; } .s13-c-desc { font-size: 15px; }
-            .s13-footer { border-radius: 15px; padding: 30px 56px; } .s13-f-text { font-size: 18px; }
+        .drawer {
+            position: absolute;
+            top: 0;
+            left: -50vmin;
+            width: 45vmin;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            border-right: 0.4vmin solid var(--accent-color);
+            transition: left 0.3s ease;
+            z-index: 3000;
+            padding: 5vmin;
+        }
+
+        .drawer.open {
+            left: 0;
+        }
+
+        .drawer h2 {
+            font-size: 3vmin;
+            margin-bottom: 3vmin;
+            color: var(--accent-color);
+        }
+
+        .drawer li {
+            margin-bottom: 2.5vmin;
+            cursor: pointer;
+            list-style: none;
+            font-size: 2.2vmin;
+            font-weight: bold;
+        }
+
+        .drawer li:hover {
+            color: var(--accent-color);
+        }
+
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+            background: #000;
+        }
+
+        .scene.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Scene 공통 스타일 */
+        .btn-main {
+            padding: 2vmin 6vmin;
+            font-size: 4.5vmin;
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-family: 'Black Han Sans';
+            box-shadow: 0 0 4vmin var(--accent-color);
+            animation: pulse 2s infinite;
+        }
+
+        /* Scene 7: 역할 선택 스타일 */
+        .dystopia-title {
+            font-family: 'Black Han Sans';
+            font-size: 8vmin;
+            margin-bottom: 5vmin;
+            color: #fff;
+            text-shadow: 0 0 2vmin #ff0000, 0 0 4vmin #ff0000;
+            text-align: center;
+        }
+
+        .card-container {
+            display: flex;
+            gap: 4vmin;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .card {
+            width: 25vmin;
+            height: 38vmin;
+            perspective: 100vmin;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 1.5vmin;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 1.5vmin 3.5vmin rgba(0, 0, 0, 0.8);
+        }
+
+        .card-front {
+            background: #111;
+            border: 0.3vmin solid #333;
+        }
+
+        .card-front img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 1.2vmin;
+        }
+
+        .card-back {
+            background: #222;
+            color: #fff;
+            transform: rotateY(180deg);
+            padding: 3vmin;
+            border: 0.4vmin solid var(--accent-color);
+        }
+
+        .card-back h3 {
+            font-family: 'Black Han Sans';
+            font-size: 4vmin;
+            margin-bottom: 3vmin;
+            color: var(--accent-color);
+        }
+
+        .card-back p {
+            font-size: 2.2vmin;
+            font-weight: bold;
+            line-height: 1.6;
+            word-break: keep-all;
+            text-align: center;
+        }
+
+        /* Scene 8: 후보자 선택 스타일 */
+        .candidate-img {
+            width: auto;
+            height: 80vh;
+            max-width: 90%;
+            object-fit: contain;
+        }
+
+        .btn-select-complete {
+            position: absolute;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 2vmin 6vmin;
+            font-size: 3.5vmin;
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-family: 'Black Han Sans';
+            animation: pulse 2s infinite;
+            white-space: nowrap;
+        }
+
+        /* Scene 9: 미션 룰 스타일 */
+        .scene9-layout {
+            display: flex;
+            width: 97%;
+            height: 80vh;
+            gap: 5vmin;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .column-header {
+            font-family: 'Black Han Sans';
+            font-size: 4.5vmin;
+            color: #fff;
+            margin-bottom: 3vmin;
+            border-bottom: 0.4vmin solid var(--accent-color);
+        }
+
+        .timeline-col,
+        .rules-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .timeline-block {
+            background: #222;
+            border: 0.2vmin solid #555;
+            padding: 2vmin;
+            width: 90%;
+            text-align: center;
+            border-radius: 1vmin;
+            font-size: 2.5vmin;
+            font-weight: bold;
+            margin-bottom: 2vmin;
+        }
+
+        .rules-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2vmin;
+        }
+
+        .rule-circle {
+            width: 20vmin;
+            height: 20vmin;
+            border-radius: 50%;
+            background: #111;
+            border: 0.4vmin solid var(--accent-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            margin: 0.5vmin;
+            font-family: 'Black Han Sans';
+            font-size: 2.2vmin;
+        }
+
+        .break {
+            flex-basis: 100%;
+            height: 0;
+        }
+
+        /* Scene 11: 미션 진행 스타일 (정렬 및 크기 최적화) */
+        .mission-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 2vmin;
+        }
+
+        .timer-badge {
+            font-family: 'Black Han Sans';
+            font-size: 5.5vmin;
+            color: var(--accent-color);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1.5vmin 4vmin;
+            border: 0.2vmin solid var(--accent-color);
+            border-radius: 2vmin;
+        }
+
+        .phase-title {
+            font-family: 'Noto Sans KR';
+            font-weight: 700;
+            font-size: 6vmin;
+            color: #fff;
+            margin-bottom: 4vmin;
+            text-shadow: 0.2vmin 0.4vmin 0.8vmin rgba(0, 0, 0, 0.8);
+            text-align: center;
+        }
+
+        .phase-content {
+            font-size: 2.8vmin;
+            font-weight: bold;
+            background: rgba(10, 10, 10, 0.9);
+            padding: 4vmin 6vmin;
+            border-radius: 2.5vmin;
+            border: 0.3vmin solid #777;
+            min-height: 45vmin;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            width: 95%;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .phase-text-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            flex: 1;
+            width: 100%;
+        }
+
+        .phase-content p {
+            margin-bottom: 2.5vmin;
+            width: 100%;
+            text-align: left;
+            line-height: 1.6;
+            display: flex;
+            align-items: flex-start;
+            word-break: keep-all;
+            white-space: normal;
+        }
+
+        .phase-content p::before {
+            content: "▶ ";
+            color: var(--accent-color);
+            margin-right: 1.5vmin;
+            flex-shrink: 0;
+        }
+
+        .vote-layout {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            gap: 4vmin;
+        }
+
+        .vote-img-col {
+            display: flex;
+            gap: 2vmin;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .vote-img-col img {
+            width: 100%;
+            max-width: 30vmin;
+            object-fit: contain;
+            border: 0.3vmin solid #fff;
+            transition: transform 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .vote-img-col img:hover {
+            transform: scale(1.6);
+            z-index: 999;
+            border-color: var(--gold-color);
+        }
+
+        .example-box {
+            display: flex;
+            gap: 2vmin;
+            margin-top: 2vmin;
+            justify-content: flex-start;
+            width: 100%;
+        }
+
+        .example-box img {
+            width: 15vmin;
+            height: auto;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            border: 0.2vmin solid #fff;
+            transition: transform 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .example-box img:hover {
+            transform: scale(2.0);
+            z-index: 999;
+            border-color: var(--gold-color);
+        }
+
+        .phase-controls {
+            position: absolute;
+            bottom: 3.5vmin;
+            display: flex;
+            gap: 2vmin;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .phase-btn {
+            background: #333;
+            color: #fff;
+            border: 0.2vmin solid #555;
+            padding: 1.5vmin 3vmin;
+            font-size: 2vmin;
+            cursor: pointer;
+            font-family: 'Black Han Sans';
+            border-radius: 1vmin;
+            transition: 0.3s;
+            white-space: nowrap;
+        }
+
+        .phase-btn:hover {
+            background: var(--accent-color);
+            border-color: #fff;
+        }
+
+        /* Scene 12: 디브리핑 스타일 */
+        .debrief-box {
+            text-align: center;
+            border: 0.3vmin solid var(--accent-color);
+            padding: 6vmin;
+            background: rgba(0, 0, 0, 0.9);
+            width: 96%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .debrief-text {
+            font-size: 2.5vmin;
+            line-height: 1.8;
+            color: #ccc;
+            margin-top: 4vmin;
+            text-align: left;
+            max-width: 150vmin;
+        }
+
+        /* --- [모바일 맞춤형 풀 반응형 미디어 쿼리] --- */
+        @media screen and (max-width: 768px) and (orientation: portrait) {
+            body, #main-wrapper { 
+                max-width: none;
+                max-height: none;
+                aspect-ratio: unset;
+                overflow: hidden; /* 각 씬 내에서 개별 스크롤 처리 */
+            }
+            
+            /* 네비게이션 및 서랍 */
+            .start-msg { font-size: 8vw; text-align: center; width: 100%; word-break: keep-all; padding: 0 4vw; box-sizing: border-box; }
+            #start-overlay p { font-size: 4vw !important; margin-top: 5vw !important; text-align: center; width: 100%; word-break: keep-all; padding: 0 4vw; box-sizing: border-box; }
+            .nav-ui { font-size: 4.5vw; padding: 2.5vw 4vw; border-radius: 1.5vw; z-index: 9999; }
+            #btn-menu { top: 5vw; left: 5vw; }
+            #btn-prev { bottom: 5vw; left: 5vw; }
+            #btn-next { bottom: 5vw; right: 5vw; }
+            
+            .drawer { width: 80vw; left: -85vw; padding: 8vw; }
+            .drawer.open { left: 0; }
+            .drawer h2 { font-size: 6vw; margin-bottom: 6vw; }
+            .drawer li { font-size: 5vw; margin-bottom: 5vw; }
+            .btn-main { padding: 4vw 14vw; font-size: 6vw; box-shadow: 0 0 8vw var(--accent-color); }
+
+            /* 공통 Scene (세로 스크롤 허용) */
+            .scene { 
+                justify-content: flex-start; 
+                padding: 18vw 5vw 15vw 5vw; 
+                overflow-y: auto; 
+                height: 100vh;
+            }
+
+            /* Scene 7: 카드 배열 */
+            .dystopia-title { font-size: 10vw; margin-bottom: 8vw; white-space: normal;}
+            .card-container { flex-direction: column; gap: 8vw; padding-bottom: 10vw; }
+            .card { width: 80vw; height: 110vw; }
+            .card-inner { height: 100%; }
+            .card-back h3 { font-size: 8vw; margin-bottom: 4vw; }
+            .card-back p { font-size: 5vw; white-space: normal; line-height: 1.5; }
+
+            /* Scene 8: 후보자 선택 */
+            .candidate-img { width: 90vw; height: auto; max-height: none; margin-bottom: 10vw; }
+            .btn-select-complete { position: relative; bottom: auto; left: auto; transform: none; font-size: 5vw; width: 80vw; text-align: center; }
+
+            /* Scene 9: 규칙 */
+            .scene9-layout { flex-direction: column; height: auto; gap: 10vw; width: 100%; border: none; padding-bottom: 15vw;}
+            .column-header { font-size: 7vw; margin-bottom: 5vw; }
+            .timeline-col, .rules-col { width: 100%; }
+            .timeline-block { width: 100%; font-size: 5vw; padding: 4vw; margin-bottom: 4vw; }
+            .rules-grid { gap: 4vw; }
+            .rule-circle { width: 35vw; height: 35vw; font-size: 5.5vw; }
+
+            /* Scene 10: 다짐 (인라인 강제 해제) */
+            #scene-10 div h1 { font-size: 12vw !important; }
+            #scene-10 > div:nth-child(2) { font-size: 6vw !important; line-height: 1.6; }
+            #scene-10 button { font-size: 6vw !important; padding: 4vw 10vw !important;}
+
+            /* Scene 11: 미션 창 */
+            .timer-badge { font-size: 8vw; padding: 2vw 6vw; margin-bottom: 5vw; }
+            .phase-title { font-size: 8vw; margin-bottom: 6vw; white-space: normal;}
+            .phase-content { width: 100%; padding: 6vw; min-height: auto; }
+            .phase-content p { font-size: 4.5vw; }
+            .vote-layout { flex-direction: column; gap: 6vw; align-items: flex-start; }
+            .vote-img-col { flex-direction: row; flex-wrap: wrap; width: 100%; justify-content: center; }
+            .vote-img-col img { max-width: 35vw; }
+            .example-box { flex-wrap: wrap; justify-content: center; }
+            .example-box img { width: 25vw; height: auto; }
+            
+            .phase-controls { position: relative; bottom: auto; padding: 6vw 0 15vw 0; flex-wrap: wrap; gap: 3vw; }
+            .phase-btn { font-size: 4.5vw; padding: 4vw 6vw; border-radius: 2vw; flex: 1; text-align: center;}
+
+            /* Scene 12: 디브리핑 */
+            .debrief-box { width: 100%; padding: 8vw; }
+            .debrief-box h2 { font-size: 10vw !important; line-height: 1.3;}
+            .debrief-text { font-size: 5.5vw; margin-top: 8vw; }
+            #scene-12 span { font-size: 6.5vw !important; line-height: 1.4; margin-top: 6vw;}
+
+            /* Scene 13: 탈출법 */
+            #scene-13 > div { width: 100% !important; padding: 5vw; }
+            #scene-13 h2 { font-size: 7vw !important; white-space: normal;}
+            #scene-13 > div > div:nth-child(2) { grid-template-columns: 1fr !important; gap: 4vw !important; } /* 가로 투컬럼을 세로 원컬럼으로 */
+            #scene-13 > div > div:nth-child(2) > div { padding: 6vw !important; gap: 4vw !important; align-items: flex-start !important; }
+            #scene-13 > div > div:nth-child(2) > div > div:first-child { font-size: 12vw !important; } /* 번호 01,02 */
+            #scene-13 > div > div:nth-child(2) > div > div:last-child > div:first-child { font-size: 6vw !important; margin-bottom: 2vw !important; } /* 제목 */
+            #scene-13 > div > div:nth-child(2) > div > div:last-child > div:last-child { font-size: 4.5vw !important; line-height: 1.6 !important; } /* 설명 */
         }
     </style>
 </head>
@@ -140,165 +633,426 @@
 <body oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
     <div id="main-wrapper">
 
-        <div id="flash-overlay"></div>
+    <div id="flash-overlay"></div>
 
-        <div id="start-overlay" onclick="startExperience()">
-            <div class="start-msg">▼ CLICK TO START MISSION ▼</div>
-        </div>
+    <!-- UI: 시작 오버레이 -->
+    <div id="start-overlay" onclick="startExperience()">
+        <div class="start-msg">▼ CLICK TO START MISSION ▼</div>
+        <p style="color:#888; margin-top:3vmin; font-size: 2vmin; text-align: center;">화면을 클릭하면 음악과 함께 시작됩니다.</p>
+    </div>
 
-        <div class="nav-ui" id="btn-menu" onclick="toggleDrawer()">☰ MENU</div>
-        <div class="nav-ui" id="btn-prev" onclick="changeScene(-1)">◀ PREV</div>
-        <div class="nav-ui" id="btn-next" onclick="changeScene(1)">NEXT ▶</div>
+    <div class="nav-ui" id="btn-menu" onclick="toggleDrawer()">☰ MENU</div>
+    <div class="nav-ui" id="btn-prev" onclick="changeScene(-1)">◀ PREV</div>
+    <div class="nav-ui" id="btn-next" onclick="changeScene(1)">NEXT ▶</div>
 
-        <div class="drawer" id="drawer">
-            <h2>CONTENTS (Part 2)</h2>
-            <ul>
-                <li onclick="goToScene(7)">07. 역할 선택</li>
-                <li onclick="goToScene(8)">08. 후보자 선택</li>
-                <li onclick="goToScene(9)">09. 미션 룰</li>
-                <li onclick="goToScene(10)">10. 다짐</li>
-                <li onclick="goToScene(11)">11. 미션 스타트</li>
-                <li onclick="goToScene(12)">12. 디브리핑</li>
-                <li onclick="goToScene(13)">13. 필터버블 탈출법</li>
-            </ul>
-        </div>
+    <div class="drawer" id="drawer">
+        <h2>CONTENTS (Part 2)</h2>
+        <ul>
+            <li onclick="goToScene(7)">07. 역할 선택</li>
+            <li onclick="goToScene(8)">08. 후보자 선택</li>
+            <li onclick="goToScene(9)">09. 미션 룰</li>
+            <li onclick="goToScene(10)">10. 다짐</li>
+            <li onclick="goToScene(11)">11. 미션 스타트</li>
+            <li onclick="goToScene(12)">12. 디브리핑</li>
+            <li onclick="goToScene(13)">13. 필터버블 탈출법</li>
+        </ul>
+    </div>
 
-        <div id="scene-7" class="scene active">
-            <h2 class="dystopia-title" style="text-shadow:none;">CHOOSE YOUR ROLE</h2>
-            <div class="card-container">
-                <div class="card" onclick="toggleCard(this)"><div class="card-inner"><div class="card-front"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%A0%84%EB%9E%B5%EA%B0%80.png"></div><div class="card-back"><h3>전략가</h3><p>후보자를 면밀히 분석하고,<br>필승 전략 공약 3가지를<br>설계하십시오.</p></div></div></div>
-                <div class="card" onclick="toggleCard(this)"><div class="card-inner"><div class="card-front"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%97%B0%EC%84%A4%EA%B0%80.png"></div><div class="card-back"><h3>연설가</h3><p>대중의 마음을 사로잡을<br>결정적인 1분 킹스 스피치를<br>준비하십시오.</p></div></div></div>
-                <div class="card" onclick="toggleCard(this)"><div class="card-inner"><div class="card-front"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EB%94%94%EC%9E%90%EC%9D%B4%EB%84%88.png"></div><div class="card-back"><h3>디자이너</h3><p>유권자의 뇌리에 강렬하게<br>박힐 선거 포스터를 디자인하십시오.</p></div></div></div>
-                <div class="card" onclick="toggleCard(this)"><div class="card-inner"><div class="card-front"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EA%B8%B0%EC%9E%90.png"></div><div class="card-back"><h3>기자</h3><p>뉴스를 생성하고 언론사에<br>속보를 제보하여 여론을<br>조작하십시오.</p></div></div></div>
-            </div>
-            <audio id="bgm-dystopia" loop src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%9D%80%20%EC%A7%80%EA%B8%88.mp3"></audio>
-        </div>
-
-        <div id="scene-8" class="scene">
-            <img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%ED%9B%84%EB%B3%B4%EC%9E%90%20%EC%84%A0%ED%83%9D.png" class="candidate-img">
-            <button class="btn-select-complete" onclick="changeScene(1)">여러분의 후보자를 선택하세요!</button>
-        </div>
-
-        <div id="scene-9" class="scene">
-            <div class="scene9-layout">
-                <div class="timeline-col">
-                    <div class="column-header">&lt; 타임라인 &gt;</div>
-                    <div class="timeline-block">1. 후보자 분석</div>
-                    <div class="timeline-block">2. 뉴스 방송 시작</div>
-                    <div class="timeline-block">3. 제작 (공약/포스터/연설)</div>
-                    <div class="timeline-block">4. 심의 및 제출</div>
-                    <div class="timeline-block">5. 갤러리 워크 & 투표</div>
+    <!-- START: 07. 역할 선택 (Scene 7) -->
+    <div id="scene-7" class="scene active">
+        <h2 class="dystopia-title" style="text-shadow:none;">CHOOSE YOUR ROLE</h2>
+        <div class="card-container">
+            <div class="card" onclick="toggleCard(this)">
+                <div class="card-inner">
+                    <div class="card-front"><img
+                            src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%A0%84%EB%9E%B5%EA%B0%80.png">
+                    </div>
+                    <div class="card-back">
+                        <h3>전략가</h3>
+                        <p>후보자를 면밀히 분석하고,<br>필승 전략 공약 3가지를<br>설계하십시오.</p>
+                    </div>
                 </div>
-                <div class="rules-col">
-                    <div class="column-header">&lt; 미션 세부 규칙 &gt;</div>
-                    <div class="rules-grid">
-                        <div class="rule-circle">완벽한<br>거짓말</div><div class="rule-circle">법적 문제<br>제외 허용</div><div class="rule-circle">나중에<br>미안하다</div>
-                        <div class="break"></div>
-                        <div class="rule-circle">기억이<br>나지 않는다</div><div class="rule-circle">5W1H<br>필수 포함</div>
+            </div>
+            <div class="card" onclick="toggleCard(this)">
+                <div class="card-inner">
+                    <div class="card-front"><img
+                            src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%97%B0%EC%84%A4%EA%B0%80.png">
+                    </div>
+                    <div class="card-back">
+                        <h3>연설가</h3>
+                        <p>대중의 마음을 사로잡을<br>결정적인 1분 킹스 스피치를<br>준비하십시오.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card" onclick="toggleCard(this)">
+                <div class="card-inner">
+                    <div class="card-front"><img
+                            src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EB%94%94%EC%9E%90%EC%9D%B4%EB%84%88.png">
+                    </div>
+                    <div class="card-back">
+                        <h3>디자이너</h3>
+                        <p>유권자의 뇌리에 강렬하게<br>박힐 선거 포스터를 디자인하십시오.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card" onclick="toggleCard(this)">
+                <div class="card-inner">
+                    <div class="card-front"><img
+                            src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EA%B8%B0%EC%9E%90.png"></div>
+                    <div class="card-back">
+                        <h3>기자</h3>
+                        <p>뉴스를 생성하고 언론사에<br>속보를 제보하여 여론을<br>조작하십시오.</p>
                     </div>
                 </div>
             </div>
         </div>
+        <audio id="bgm-dystopia" loop
+            src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%9D%80%20%EC%A7%80%EA%B8%88.mp3"></audio>
+    </div>
+    <!-- END: 07. 역할 선택 -->
 
-        <div id="scene-10" class="scene">
-            <div style="border-top: 3px solid var(--accent-color); border-bottom: 3px solid var(--accent-color); padding: 30px 60px; margin-bottom: 40px; text-align:center;">
-                <h1 style="font-family:'Noto Sans KR'; font-size:4.5rem; font-weight:900; color:#fff;">기억하세요</h1>
-            </div>
-            <div style="font-size:2.4rem; font-weight:bold; text-align:center; line-height:1.8; color:#ddd;">
-                이제 여러분은 당신이 선택한 후보자를<br>
-                <span style="color:var(--accent-color);">대통령으로 만드는 것</span>입니다.
-            </div>
-            <button class="btn-main" onclick="changeScene(1)" style="margin-top:50px;">[ 미션 시작하기 ]</button>
-        </div>
+    <!-- START: 08. 후보자 선택 (Scene 8) -->
+    <div id="scene-8" class="scene">
+        <img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%ED%9B%84%EB%B3%B4%EC%9E%90%20%EC%84%A0%ED%83%9D.png"
+            class="candidate-img">
+        <button class="btn-select-complete" onclick="changeScene(1)">여러분의 후보자를 선택하세요!</button>
+    </div>
+    <!-- END: 08. 후보자 선택 -->
 
-        <div id="scene-11" class="scene">
-            <div class="mission-header"><div class="timer-badge" id="mission-timer">00:00</div></div>
-            <div class="mission-phase-container">
-                <h2 class="phase-title" id="phase-title">READY</h2>
-                <div class="phase-content" id="phase-content"></div>
+    <!-- START: 09. 미션 룰 (Scene 9) -->
+    <div id="scene-9" class="scene">
+        <div class="scene9-layout">
+            <div class="timeline-col">
+                <div class="column-header">&lt; 타임라인 &gt;</div>
+                <div class="timeline-block">1. 후보자 분석</div>
+                <div class="timeline-block">2. 뉴스 방송 시작</div>
+                <div class="timeline-block">3. 제작 (공약/포스터/연설)</div>
+                <div class="timeline-block">4. 심의 및 제출</div>
+                <div class="timeline-block">5. 갤러리 워크 & 투표</div>
             </div>
-            <div class="phase-controls">
-                <button class="phase-btn" onclick="prevPhase()">◀ 이전 단계</button>
-                <button class="phase-btn" onclick="toggleTimer()">타이머 시작/정지</button>
-                <button class="phase-btn" onclick="nextPhase()">다음 단계 ▶</button>
-            </div>
-        </div>
-
-        <div id="scene-12" class="scene">
-            <div class="debrief-box">
-                <h2 style="font-family:'Black Han Sans'; font-size:4rem; color:#fff;">우리가 놓친 진실: <span style="color:var(--accent-color)">필터 버블</span></h2>
-                <div class="debrief-text">
-                    오늘 우리는 나의 후보자를 위해 <br>수많은 전략과 뉴스를 쏟아냈습니다.<br>
-                    그 과정에서 여러분은 어떤 기준으로 <span style="color:var(--gold-color); font-weight:bold;">선택과 이유</span>를 결정했나요?<br>
-                    혹시 내가 보고 싶은 정보만 취사선택하지 않았나요?<br><br>
-                    <span style="color:var(--accent-color); font-weight:bold; font-size:2.5rem; display:block; text-align:center; width:100%;">"중요한 것은 결과가 아니라, <br>우리가 정보를 어떻게 받아들였느냐입니다."</span>
+            <div class="rules-col">
+                <div class="column-header">&lt; 미션 세부 규칙 &gt;</div>
+                <div class="rules-grid">
+                    <div class="rule-circle">완벽한<br>거짓말</div>
+                    <div class="rule-circle">법적 문제<br>제외 허용</div>
+                    <div class="rule-circle">나중에<br>미안하다</div>
+                    <div class="break"></div>
+                    <div class="rule-circle">기억이<br>나지 않는다</div>
+                    <div class="rule-circle">5W1H<br>필수 포함</div>
                 </div>
             </div>
         </div>
+    </div>
+    <!-- END: 09. 미션 룰 -->
 
-        <div id="scene-13" class="scene" style="background:#fff;">
-            <div class="s13-wrap">
-                <div class="s13-header">
-                    <span class="s13-badge">BREAKING THE BUBBLE</span>
-                    <h2 class="s13-title">필터버블에서 벗어나는 4가지 방법</h2>
-                </div>
-                <div class="s13-grid">
-                    <div class="s13-card"><div class="s13-num">01</div><div><div class="s13-c-title">인식하기</div><div class="s13-c-desc">내가 보는 정보는 <strong style="color:#111; font-weight:800;">알고리즘이 골라준 것</strong>입니다.<br>오늘 내가 어떤 정보를 선택했는지 되돌아보세요.</div></div></div>
-                    <div class="s13-card"><div class="s13-num">02</div><div><div class="s13-c-title">다양하게 찾기</div><div class="s13-c-desc">나와 <strong style="color:#111; font-weight:800;">다른 입장의 매체</strong>를 의도적으로 탐색하세요.<br>시크릿 모드와 팩트체크 사이트를 활용하세요.</div></div></div>
-                    <div class="s13-card"><div class="s13-num">03</div><div><div class="s13-c-title">직접 대화하기</div><div class="s13-c-desc">나와 <strong style="color:#111; font-weight:800;">다른 생각을 가진 사람</strong>과 이야기하세요.<br>오늘 갤러리 워크처럼, 상대의 논리를 직접 들으세요.</div></div></div>
-                    <div class="s13-card"><div class="s13-num">04</div><div><div class="s13-c-title">비판적으로 보기</div><div class="s13-c-desc">"이 정보는 <strong style="color:#111; font-weight:800;">누구에게 유리한가?</strong>" 항상 질문하세요.<br>감정을 자극할수록 한 번 더 의심하는 습관을 기르세요.</div></div></div>
-                </div>
-                <div class="s13-footer"><span class="s13-f-text">오늘 여러분이 직접 버블을 만들어봤기 때문에,&nbsp;<span style="color:#e74c3c;">이제는 버블 밖을 볼 수 있습니다.</span></span></div>
-            </div>
+    <!-- START: 10. 다짐 (Scene 10) -->
+    <div id="scene-10" class="scene">
+        <div
+            style="border-top: 3px solid var(--accent-color); border-bottom: 3px solid var(--accent-color); padding: 30px 60px; margin-bottom: 40px; text-align:center;">
+            <h1 style="font-family:'Noto Sans KR'; font-size:4.5rem; font-weight:900; color:#fff;">기억하세요</h1>
+        </div>
+        <div style="font-size:2.4rem; font-weight:bold; text-align:center; line-height:1.8; color:#ddd;">
+            이제 여러분은 당신이 선택한 후보자를<br>
+            <span style="color:var(--accent-color);">대통령으로 만드는 것</span>입니다.
+        </div>
+        <button class="btn-main" onclick="changeScene(1)" style="margin-top:50px;">[ 미션 시작하기 ]</button>
+    </div>
+    <!-- END: 10. 다짐 -->
+
+    <!-- START: 11. 미션 스타트 (Scene 11) -->
+    <div id="scene-11" class="scene">
+        <div class="mission-header">
+            <div class="timer-badge" id="mission-timer">00:00</div>
+        </div>
+        <div class="mission-phase-container">
+            <h2 class="phase-title" id="phase-title">READY</h2>
+            <div class="phase-content" id="phase-content"></div>
+        </div>
+        <div class="phase-controls">
+            <button class="phase-btn" onclick="prevPhase()">◀ 이전 단계</button>
+            <button class="phase-btn" onclick="toggleTimer()">타이머 시작/정지</button>
+            <button class="phase-btn" onclick="nextPhase()">다음 단계 ▶</button>
         </div>
 
     </div>
+    <!-- END: 11. 미션 스타트 -->
 
+    <!-- START: 12. 디브리핑 (Scene 12) -->
+    <div id="scene-12" class="scene">
+        <div class="debrief-box">
+            <h2 style="font-family:'Black Han Sans'; font-size:4rem; color:#fff;">우리가 놓친 진실: <span
+                    style="color:var(--accent-color)">필터 버블</span></h2>
+            <div class="debrief-text">
+                오늘 우리는 나의 후보자를 위해 <br>수많은 전략과 뉴스를 쏟아냈습니다.<br>
+                그 과정에서 여러분은 어떤 기준으로 <span style="color:var(--gold-color); font-weight:bold;">선택과 이유</span>를 결정했나요?<br>
+                혹시 내가 보고 싶은 정보만 취사선택하지 않았나요?<br><br>
+                <span
+                    style="color:var(--accent-color); font-weight:bold; font-size:2.5rem; display:block; text-align:center; width:100%;">"중요한
+                    것은 결과가 아니라, <br>우리가 정보를 어떻게 받아들였느냐입니다."</span>
+            </div>
+        </div>
+    </div>
+    <!-- END: 12. 디브리핑 -->
+
+    <!-- START: 13. 필터버블 탈출법 (Scene 13) -->
+    <div id="scene-13" class="scene" style="background:#fff; font-family:'Noto Sans KR', sans-serif;">
+        <div style="width:96vmin;">
+
+            <!-- 헤더 -->
+            <div
+                style="display:flex; align-items:baseline; gap:2.4vmin; margin-bottom:4vmin; border-bottom:0.3vmin solid #111; padding-bottom:2vmin;">
+                <span
+                    style="font-size:1.5vmin; font-weight:700; color:#e74c3c; letter-spacing:0.2em; flex-shrink:0;">BREAKING
+                    THE BUBBLE</span>
+                <h2 style="font-size:3.5vmin; font-weight:900; color:#111; margin:0; font-family:'Noto Sans KR';">필터버블에서
+                    벗어나는 4가지 방법</h2>
+            </div>
+
+            <!-- 카드 그리드 -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:2.2vmin; margin-bottom:2.8vmin;">
+
+                <div
+                    style="background:#f7f7f7; border-radius:1.6vmin; padding:3.6vmin 4.2vmin; display:flex; gap:2.8vmin; align-items:flex-start;">
+                    <div
+                        style="font-size:4vmin; font-weight:900; color:#e74c3c; opacity:0.55; line-height:1; flex-shrink:0; min-width:7vmin;">
+                        01</div>
+                    <div>
+                        <div style="font-size:1.9vmin; font-weight:900; color:#111; margin-bottom:1.2vmin;">인식하기</div>
+                        <div style="font-size:1.4vmin; line-height:1.9; color:#555;">내가 보는 정보는 <strong
+                                style="color:#111; font-weight:800;">알고리즘이 골라준 것</strong>입니다.<br>오늘 내가 어떤 정보를 선택했는지
+                            되돌아보세요.</div>
+                    </div>
+                </div>
+
+                <div
+                    style="background:#f7f7f7; border-radius:1.6vmin; padding:3.6vmin 4.2vmin; display:flex; gap:2.8vmin; align-items:flex-start;">
+                    <div
+                        style="font-size:4vmin; font-weight:900; color:#e74c3c; opacity:0.55; line-height:1; flex-shrink:0; min-width:7vmin;">
+                        02</div>
+                    <div>
+                        <div style="font-size:1.9vmin; font-weight:900; color:#111; margin-bottom:1.2vmin;">다양하게 찾기</div>
+                        <div style="font-size:1.4vmin; line-height:1.9; color:#555;">나와 <strong
+                                style="color:#111; font-weight:800;">다른 입장의 매체</strong>를 의도적으로 탐색하세요.<br>시크릿 모드와 팩트체크
+                            사이트를 활용하세요.</div>
+                    </div>
+                </div>
+
+                <div
+                    style="background:#f7f7f7; border-radius:1.6vmin; padding:3.6vmin 4.2vmin; display:flex; gap:2.8vmin; align-items:flex-start;">
+                    <div
+                        style="font-size:4vmin; font-weight:900; color:#e74c3c; opacity:0.55; line-height:1; flex-shrink:0; min-width:7vmin;">
+                        03</div>
+                    <div>
+                        <div style="font-size:1.9vmin; font-weight:900; color:#111; margin-bottom:1.2vmin;">직접 대화하기</div>
+                        <div style="font-size:1.4vmin; line-height:1.9; color:#555;">나와 <strong
+                                style="color:#111; font-weight:800;">다른 생각을 가진 사람</strong>과 이야기하세요.<br>오늘 갤러리 워크처럼, 상대의
+                            논리를 직접 들으세요.</div>
+                    </div>
+                </div>
+
+                <div
+                    style="background:#f7f7f7; border-radius:1.6vmin; padding:3.6vmin 4.2vmin; display:flex; gap:2.8vmin; align-items:flex-start;">
+                    <div
+                        style="font-size:4vmin; font-weight:900; color:#e74c3c; opacity:0.55; line-height:1; flex-shrink:0; min-width:7vmin;">
+                        04</div>
+                    <div>
+                        <div style="font-size:1.9vmin; font-weight:900; color:#111; margin-bottom:1.2vmin;">비판적으로 보기</div>
+                        <div style="font-size:1.4vmin; line-height:1.9; color:#555;">"이 정보는 <strong
+                                style="color:#111; font-weight:800;">누구에게 유리한가?</strong>" 항상 질문하세요.<br>감정을 자극할수록 한 번 더
+                            의심하는 습관을 기르세요.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 마무리 배너 -->
+            <div style="background:#111; border-radius:1.4vmin; padding:2.8vmin 5.2vmin; text-align:center;">
+                <span style="font-size:1.7vmin; font-weight:700; color:#fff; line-height:1.8;">
+                    오늘 여러분이 직접 버블을 만들어봤기 때문에,&nbsp;
+                    <span style="color:#e74c3c;">이제는 버블 밖을 볼 수 있습니다.</span>
+                </span>
+            </div>
+
+        </div>
+    </div>
+    <!-- END: 13. 필터버블 탈출법 -->
+    </div><!-- [필수] main-wrapper 닫기 -->
     <script>
-        // --- [PC/모바일 하이브리드 스케일링 로직] ---
-        function resizeApp() {
-            const wrapper = document.getElementById('main-wrapper');
-            if (window.innerWidth <= 1024) {
-                const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-                wrapper.style.transform = `scale(${scale})`;
-            } else {
-                wrapper.style.transform = 'none';
-            }
-        }
-        window.addEventListener('resize', resizeApp); resizeApp();
-
-        let currentScene = 7, currentPhaseIndex = 0, timerInterval, timeLeft = 0, isTimerRunning = false;
+        /**
+         * Global State & Configuration
+         */
+        let currentScene = 7;
+        let currentPhaseIndex = 0, timerInterval, timeLeft = 0, isTimerRunning = false;
 
         const phases = [
-            { title: "1. 후보자 및 경쟁자 분석", content: `<div class="phase-text-wrapper"><p>서류에서 프로필을 확인하세요. (보안 유지!)</p><p>QR코드를 스캔하여 후보자와 미팅을 진행하세요.</p><p>역할 별 분석 미션을 수행하세요.</p></div>`, time: 300 },
-            { title: "2. 미션 결과 확인 및 공유", content: `<div class="phase-text-wrapper"><p>서로 미션 결과를 공유하고 공약을 만들어보세요!</p><p>후보자의 이름, 프로필, 몽타주 모두 여러분 손에 달렸습니다!</p><div class="example-box"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C1.jpg"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C2.jpg"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C3.jpg"></div></div>`, time: 120 },
-            { title: "3. 뉴스 및 여론전의 시작", content: `<div class="phase-text-wrapper"><p><strong>STORY NEWS OPEN</strong></p><p>기자만이 기사를 발행하거나 찌라시를 뿌릴 수 있습니다.</p></div>`, time: 900 },
-            { title: "4. 갤러리 워크", content: `<div class="vote-layout"><div class="phase-text-wrapper"><p>1) 연설가 구역 유세</p><p>2) 타 유세 청취 및 공방전</p><p>3) 조별 공유</p></div><div class="vote-img-col"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C6.jpg"></div></div>`, time: 300 },
-            { title: "5. 투표", content: `<div class="vote-layout"><div class="phase-text-wrapper"><p style="color:var(--gold-color)">★ 할 일: 포스트잇 부착</p><p>[포스트잇] 뽑아야 할 이유와 뽑지 말아야 할 이유를 사진 같이 붙여주세요.</p></div><div class="vote-img-col"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C4.png"><img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C5.jpg"></div></div>`, time: 300 }
+            {
+                title: "1. 후보자 및 경쟁자 분석",
+                content: `
+                <div class="phase-text-wrapper">
+                    <p>서류에서 프로필을 확인하세요. (보안 유지!)</p>
+                    <p>QR코드를 스캔하여 후보자와 미팅을 진행하세요.</p>
+                    <p>역할 별 분석 미션을 수행하세요.</p>
+                </div>`,
+                time: 300
+            },
+            {
+                title: "2. 미션 결과 확인 및 공유",
+                content: `
+                <div class="phase-text-wrapper">
+                    <p>서로 미션 결과를 공유하고 공약을 만들어보세요!</p>
+                    <p>후보자의 이름, 프로필, 몽타주 모두 여러분 손에 달렸습니다!</p>
+                    <div class="example-box">
+                        <img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C1.jpg">
+                        <img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C2.jpg">
+                        <img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C3.jpg">
+                    </div>
+                </div>`,
+                time: 120
+            },
+            {
+                title: "3. 뉴스 및 여론전의 시작",
+                content: `
+                <div class="phase-text-wrapper">
+                    <p><strong>STORY NEWS OPEN</strong></p>
+                    <p>기자만이 기사를 발행하거나 찌라시를 뿌릴 수 있습니다.</p>
+                </div>`,
+                time: 900
+            },
+            {
+                title: "4. 갤러리 워크",
+                content: `
+                <div class="vote-layout">
+                    <div class="phase-text-wrapper">
+                        <p>1) 연설가 구역 유세</p>
+                        <p>2) 타 유세 청취 및 공방전</p>
+                        <p>3) 조별 공유</p>
+                    </div>
+                    <div class="vote-img-col">
+                        <img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C6.jpg">
+                    </div>
+                </div>`,
+                time: 300
+            },
+            {
+                title: "5. 투표",
+                content: `
+                <div class="vote-layout">
+                    <div class="phase-text-wrapper">
+                        <p style="color:var(--gold-color)">★ 할 일: 포스트잇 부착</p>
+                        <p>[포스트잇] 뽑아야 할 이유와 뽑지 말아야 할 이유를 사진 같이 붙여주세요.</p>
+                    </div>
+                    <div class="vote-img-col">
+                        <img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C4.png">
+                        <img src="https://ooo9luzdoplzs8wq.public.blob.vercel-storage.com/%ED%95%84%ED%84%B0%EB%B2%84%EB%B8%94/%EC%98%88%EC%8B%9C5.jpg">
+                    </div>
+                </div>`,
+                time: 300
+            }
         ];
 
         document.addEventListener('contextmenu', (e) => e.preventDefault());
-        document.addEventListener('keydown', (e) => { if (e.keyCode === 123) { e.preventDefault(); return false; } if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; } if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; } });
+        document.addEventListener('keydown', (e) => {
+            if (e.keyCode === 123) { e.preventDefault(); return false; }
+            if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
+            if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+        });
         document.addEventListener('dragstart', (e) => e.preventDefault());
 
-        function startExperience() { document.getElementById('start-overlay').style.display = 'none'; document.getElementById('bgm-dystopia').play().catch(e => console.log(e)); }
+        function startExperience() {
+            document.getElementById('start-overlay').style.display = 'none';
+            document.getElementById('bgm-dystopia').play().catch(e => console.log("Audio play blocked", e));
+        }
+
         function changeScene(dir) { goToScene(currentScene + dir); }
+
         function goToScene(num) {
             if (num < 7 || num > 13) return;
             document.getElementById(`scene-${currentScene}`).classList.remove('active');
             const nextBtn = document.getElementById('btn-next');
             if (num === 13) nextBtn.style.opacity = '0.3'; else nextBtn.style.opacity = '1';
             if (num >= 9) document.getElementById('bgm-dystopia').pause();
-            if (num === 11) { currentPhaseIndex = 0; loadPhase(0); } else { clearInterval(timerInterval); isTimerRunning = false; }
-            document.getElementById(`scene-${num}`).classList.add('active'); currentScene = num; document.getElementById('drawer').classList.remove('open');
+            if (num === 11) {
+                currentPhaseIndex = 0;
+                loadPhase(0);
+            } else {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+            }
+            document.getElementById(`scene-${num}`).classList.add('active');
+            currentScene = num;
+            document.getElementById('drawer').classList.remove('open');
         }
-        function loadPhase(idx) { const p = phases[idx]; document.getElementById('phase-title').innerText = p.title; document.getElementById('phase-content').innerHTML = p.content; timeLeft = p.time; updateTimerDisplay(); clearInterval(timerInterval); isTimerRunning = false; }
+
+        function loadPhase(idx) {
+            const p = phases[idx];
+            document.getElementById('phase-title').innerText = p.title;
+            document.getElementById('phase-content').innerHTML = p.content;
+            timeLeft = p.time;
+            updateTimerDisplay();
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+        }
+
         function nextPhase() { if (currentPhaseIndex < phases.length - 1) { currentPhaseIndex++; loadPhase(currentPhaseIndex); } else goToScene(12); }
         function prevPhase() { if (currentPhaseIndex > 0) { currentPhaseIndex--; loadPhase(currentPhaseIndex); } }
-        function toggleTimer() { if (isTimerRunning) { clearInterval(timerInterval); isTimerRunning = false; } else { isTimerRunning = true; timerInterval = setInterval(() => { if (timeLeft > 0) { timeLeft--; updateTimerDisplay(); } else { clearInterval(timerInterval); alert("미션 시간이 종료되었습니다!"); } }, 1000); } }
+
+        function toggleTimer() {
+            if (isTimerRunning) { clearInterval(timerInterval); isTimerRunning = false; }
+            else { isTimerRunning = true; timerInterval = setInterval(() => { if (timeLeft > 0) { timeLeft--; updateTimerDisplay(); } else { clearInterval(timerInterval); alert("미션 시간이 종료되었습니다!"); } }, 1000); }
+        }
+
         function updateTimerDisplay() { let m = Math.floor(timeLeft / 60), s = timeLeft % 60; document.getElementById('mission-timer').innerText = `${m}:${s < 10 ? '0' + s : s}`; }
         function toggleDrawer() { document.getElementById('drawer').classList.toggle('open'); }
         function toggleCard(card) { card.classList.toggle('flipped'); }
     </script>
+
+    <script>
+    // 1. 키보드 단축키 차단 (F12, Ctrl+Shift+I, Ctrl+U 등)
+    document.addEventListener('keydown', function(event) {
+        if (event.keyCode === 123 || // F12
+           (event.ctrlKey && event.shiftKey && event.keyCode === 73) || // Ctrl+Shift+I
+           (event.ctrlKey && event.shiftKey && event.keyCode === 74) || // Ctrl+Shift+J
+           (event.ctrlKey && event.keyCode === 85)) { // Ctrl+U
+            event.preventDefault();
+            event.returnValue = false;
+        }
+    });
+
+    // 2. 개발자 도구 강제 정지 (무한 디버거 덫)
+    setInterval(function() {
+        var before = new Date().getTime();
+        debugger; 
+        var after = new Date().getTime();
+        if (after - before > 100) {
+            document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:50px;'>보안 정책에 의해 접근이 차단되었습니다.</h1>";
+        }
+    }, 1000);
+</script>
+
+    
+ <script>
+        // 1. 마우스 우클릭 방지 (contextmenu 이벤트 차단)
+        document.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+        });
+
+        // 추가 팁: 드래그 및 복사도 방지하고 싶다면 아래 주석을 해제하세요.
+        /*
+        // 2. 텍스트 드래그 방지
+        document.addEventListener('selectstart', function(event) {
+            event.preventDefault();
+        });
+
+        // 3. 복사(Ctrl+C) 방지
+        document.addEventListener('copy', function(event) {
+            event.preventDefault();
+        });
+        */
+    </script>
+
+
+
+    </div>
 </body>
+
 </html>
